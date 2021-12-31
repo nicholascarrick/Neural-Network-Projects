@@ -1,0 +1,100 @@
+import tensorflow as tf 
+import tensorflow_datasets as tfds
+import numpy as np
+from tensorflow.keras.layers.experimental import 
+
+
+#import training and test data
+
+train = tfds.load('mnist', split='train',as_supervised = True, shuffle_files=True)
+test = tfds.load('mnist', split='test',as_supervised = True, shuffle_files=True)
+
+
+#Find out shape of data
+
+train_1 = train.take(1)
+for image,label in tfds.as_numpy(train_1):
+  print(image.shape,label)
+  
+#Batch and prefetch data 
+
+train_data = train.shuffle(1000).batch(32).prefetch(tf.data.AUTOTUNE)
+test_data = test.batch(32).prefetch(tf.data.AUTOTUNE)
+
+#Build a baseline model
+
+inputs = tf.keras.Input(shape=(28,28,1))
+first_layer = tf.keras.layers.Conv2D(2,3,activation="relu")
+x = first_layer(inputs)
+x = tf.keras.layers.Conv2D(2,3,activation="relu")(x)
+x = tf.keras.layers.GlobalAveragePooling2D(keepdims=True)(x)
+x = tf.keras.layers.GlobalAveragePooling2D(keepdims=True)(x)
+x = tf.keras.layers.Flatten()(x)
+outputs = tf.keras.layers.Dense(10,activation = "softmax")(x)
+
+model = tf.keras.Model(inputs,outputs)
+
+model.compile(
+    optimizer = tf.keras.optimizers.Adam(),
+    loss = tf.keras.losses.SparseCategoricalCrossentropy(),
+    metrics = ["accuracy"])
+	
+#get Sumamry of baseline model
+model.summary()
+
+#train model
+attempt_1 = model.fit(
+    train_data,
+    epochs = 10,
+    steps_per_epoch = len(train_data),
+    validation_data = test_data,
+    )
+    
+model.fit(test_data) #loss: 1.4329 - accuracy: 0.4616
+
+######################################################################
+#Goal: Build a model using transfer learning that outperforms this first model
+######################################################################
+
+#Import a model to utilize for transfer learning
+
+base_model = tf.keras.applications.EfficientNetB1(include_top=False)
+base_model.trainable=False
+
+
+#Create a data augmentation layer within model
+data_augmentation = tf.keras.Sequential([preprocessing.Resizing(256,256)])
+
+#Create a second model
+
+inputs = tf.keras.Input(shape=(28,28,1),batch_size=32,name="input_layer")
+x = data_augmentation(inputs)
+x = base_model(x)
+x = tf.keras.layers.Flatten()(x)
+outputs = tf.keras.layers.Dense(10,activation="softmax",name="output_layer")(x)
+model_2 = tf.keras.Model(inputs,outputs)
+
+
+#Compile Model
+model_2.compile(
+    optimizer = tf.keras.optimizers.Adam(),
+    loss = tf.keras.losses.SparseCategoricalCrossentropy(),
+    metrics = ["accuracy"]
+)
+
+#Get summary of model structure
+model_2.summary()
+
+
+#Train model 
+model_2_attempt_1 = model_2.fit(
+    train_data,
+    epochs = 1,
+    steps_per_epoch = len(train_data),
+    validation_data = test_data,
+    )
+	
+model_2.evaluate(test_data) #loss: 0.5669 - accuracy: 0.9802
+
+
+#utilizing transfer learning, accuracy nearly doubled
