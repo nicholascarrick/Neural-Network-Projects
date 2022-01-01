@@ -1,0 +1,156 @@
+###Creating CNN's to predict categories on Fashion MNST dataset
+
+
+import tensorflow as tf
+import tensorflow_datasets as tfds
+import numpy as np
+import pandas as pd
+
+#Load dataset
+test = tfds.load(name="fashion_mnist",split="test",shuffle_files = True,as_supervised=True)
+train = tfds.load(name="fashion_mnist",split="train",as_supervised=True)
+
+#create training/test batches
+train_data = train.shuffle(1000).batch(32).prefetch(tf.data.AUTOTUNE)
+test_data = test.batch(32).prefetch(tf.data.AUTOTUNE)
+
+##################################################################################
+#Basline Model: Model 1
+##################################################################################
+
+#build a basic model
+inputs = tf.keras.Input(shape=(28,28,1),batch_size=32,name="input_layer")
+x = tf.keras.layers.Conv2D(32,3,activation="relu")(inputs)
+x = tf.keras.layers.Conv2D(32,3,activation="relu")(x)
+x = tf.keras.layers.MaxPool2D()(x)
+x = tf.keras.layers.Flatten()(x)
+outputs = tf.keras.layers.Dense(10,activation="softmax",name="output")(x)
+model = tf.keras.Model(inputs,outputs)
+
+model.compile(
+    optimizer = tf.keras.optimizers.Adam(),
+    loss = tf.keras.losses.sparse_categorical_crossentropy,
+    metrics = ["accuracy"]
+)
+
+#create a summary of the model 
+model.summary()
+
+#Create an early stop callback for training
+early_stop = tf.keras.callbacks.EarlyStopping(monitor="val_loss")
+
+attempt_1 = model.fit(
+    train_data,
+    epochs = 10,
+    steps_per_epoch = len(train_data),
+    validation_data = test_data,
+    validation_steps = len(test_data),
+    callbacks = [early_stop]
+) #loss: 0.3098 - accuracy: 0.8889
+
+model.evaluate(test_data) #loss: 0.3391 - accuracy: 0.8808
+
+
+##################################################################################
+#second attempt: Model 2
+##################################################################################
+
+inputs = tf.keras.Input(shape=(28,28,1),batch_size=32,name="input_layer")
+x = tf.keras.layers.Conv2D(32,3,activation="relu")(inputs)
+x = tf.keras.layers.Conv2D(32,3,activation="relu")(x)
+x = tf.keras.layers.Conv2D(32,3,activation="relu")(x)
+x = tf.keras.layers.MaxPool2D()(x)
+x = tf.keras.layers.Flatten()(x)
+outputs = tf.keras.layers.Dense(10,activation="softmax",name="output")(x)
+model_2 = tf.keras.Model(inputs,outputs)
+
+model_2.compile(
+    optimizer = tf.keras.optimizers.Adam(),
+    loss = tf.keras.losses.sparse_categorical_crossentropy,
+    metrics = ["accuracy"]
+)
+
+model_2.summary()
+
+attempt_2 = model_2.fit(
+    train_data,
+    epochs = 10,
+    steps_per_epoch = len(train_data),
+    validation_data = test_data,
+    validation_steps = len(test_data),
+    callbacks = [early_stop]
+)
+
+model_2.evaluate(test_data) #loss: 0.3292 - accuracy: 0.8879
+
+
+###################################################################################
+#Third attempt: Model 3
+###################################################################################
+
+
+inputs = tf.keras.Input(shape=(28,28,1),batch_size=32,name="input_layer")
+x = tf.keras.layers.Conv2D(32,3,activation="relu")(inputs)
+x = tf.keras.layers.Conv2D(32,3,activation="relu")(x)
+x = tf.keras.layers.Conv2D(32,3,activation="relu")(x)
+x = tf.keras.layers.MaxPool2D()(x)
+x = tf.keras.layers.Conv2D(32,3,activation="relu")(inputs)
+x = tf.keras.layers.Conv2D(32,3,activation="relu")(x)
+x = tf.keras.layers.Conv2D(32,3,activation="relu")(x)
+x = tf.keras.layers.MaxPool2D()(x)
+x = tf.keras.layers.Flatten()(x)
+outputs = tf.keras.layers.Dense(10,activation="softmax",name="output")(x)
+model_3 = tf.keras.Model(inputs,outputs)
+
+model_3.compile(
+    optimizer = tf.keras.optimizers.Adam(),
+    loss = tf.keras.losses.sparse_categorical_crossentropy,
+    metrics = ["accuracy"]
+)
+
+
+attempt_3 = model_3.fit(
+    train_data,
+    epochs = 10,
+    steps_per_epoch = len(train_data),
+    validation_data = test_data,
+    validation_steps = len(test_data),
+    callbacks = [early_stop]
+)
+
+model_3.evaluate(test_data) #loss: 0.3384 - accuracy: 0.8831
+
+
+###################################################################################
+#Fourth attempt: Model 4 adding more neuron in dense layers connected to outputs
+###################################################################################
+
+inputs = tf.keras.Input(shape=(28,28,1),batch_size=32,name="input_layer")
+x = tf.keras.layers.Conv2D(32,3,activation="relu")(inputs)
+x = tf.keras.layers.Conv2D(32,3,activation="relu")(x)
+x = tf.keras.layers.Conv2D(32,3,activation="relu")(x)
+x = tf.keras.layers.MaxPool2D()(x)
+x = tf.keras.layers.Flatten()(x)
+x = tf.keras.layers.Dense(120,activation="relu")(x)
+x = tf.keras.layers.Dense(84,activation="relu")(x)
+outputs = tf.keras.layers.Dense(10,activation="softmax",name="output")(x)
+model_4 = tf.keras.Model(inputs,outputs)
+
+model_4.compile(
+    optimizer = tf.keras.optimizers.Adam(),
+    loss = tf.keras.losses.sparse_categorical_crossentropy,
+    metrics = ["accuracy"]
+)
+
+attempt_4 = model_4.fit(
+    train_data,
+    epochs = 10,
+    steps_per_epoch = len(train_data),
+    validation_data = test_data,
+    validation_steps = len(test_data),
+    callbacks = [early_stop]
+)
+
+model_4.evaluate(test_data) #loss: 0.3144 - accuracy: 0.8904
+
+#model_4 outperforms all other models in sample set with 89% accuracy. 
